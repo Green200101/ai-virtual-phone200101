@@ -802,26 +802,46 @@ export function MixologyApp({ onClose }: { onClose: () => void }) {
                                     type="button"
                                     className="mix-pill-btn"
                                     style={{ fontSize: 13, padding: "4px 10px", height: "auto", background: "#3b82f6", color: "#fff" }}
-                                    onClick={() => {
-                                        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>特调秘录 - 对局导出</title><style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:20px;background:#111;color:#eee;line-height:1.6;} .session{border:1px solid #333;margin-bottom:30px;padding:20px;border-radius:12px;background:#1a1a1a;} h2{margin-top:0;border-bottom:1px solid #333;padding-bottom:10px;} .turn{margin-bottom:12px;display:flex;flex-direction:column;} .user{align-items:flex-end;} .char{align-items:flex-start;} .bubble{padding:10px 14px;border-radius:12px;max-width:80%;white-space:pre-wrap;} .user .bubble{background:#2563eb;color:#fff;border-bottom-right-radius:4px;} .char .bubble{background:#374151;color:#eee;border-bottom-left-radius:4px;} .sys{color:#888;font-size:0.9em;text-align:center;margin:10px 0;} .name{font-size:0.85em;color:#aaa;margin-bottom:4px;}</style></head><body>`;
+                                    onClick={async () => {
+                                        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>特调秘录 - 对局导出</title><style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:20px;background:#111;color:#eee;line-height:1.6;} .session{border:1px solid #333;margin-bottom:30px;padding:20px;border-radius:12px;background:#1a1a1a;} h2{margin-top:0;border-bottom:1px solid #333;padding-bottom:10px;} .turn{margin-bottom:12px;display:flex;flex-direction:column;} .user{align-items:flex-end;} .char{align-items:flex-start;} .bubble{padding:10px 14px;border-radius:12px;max-width:80%;white-space:pre-wrap;word-break:break-word;} .user .bubble{background:#2563eb;color:#fff;border-bottom-right-radius:4px;} .char .bubble{background:#374151;color:#eee;border-bottom-left-radius:4px;} .sys{color:#888;font-size:0.9em;text-align:center;margin:10px 0;} .name{font-size:0.85em;color:#aaa;margin-bottom:4px;}</style></head><body>`;
                                         html += `<h1>特调对局导出 (${sessions.length}场)</h1>`;
                                         sessions.forEach(s => {
-                                            html += `<div class="session"><h2>${s.charName} · ${s.recipe.name} <span style="font-size:0.6em;color:#888;font-weight:normal">${new Date(s.updatedAt).toLocaleString()}</span></h2><div class="chat">`;
-                                            s.turns.forEach(t => {
-                                                if(t.role === "user") html += `<div class="turn user"><div class="name">我</div><div class="bubble">${t.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div></div>`;
-                                                else if(t.role === "assistant") html += `<div class="turn char"><div class="name">${s.charName}</div><div class="bubble">${t.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div></div>`;
-                                                else html += `<div class="turn sys"><i>[系统] ${t.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</i></div>`;
+                                            html += `<div class="session"><h2>${s.charName} · ${s.recipe?.name || '特调'} <span style="font-size:0.6em;color:#888;font-weight:normal">${new Date(s.updatedAt).toLocaleString()}</span></h2><div class="chat">`;
+                                            (s.turns || []).forEach(t => {
+                                                const content = (t.content || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                                                if(t.role === "user") html += `<div class="turn user"><div class="name">我</div><div class="bubble">${content}</div></div>`;
+                                                else if(t.role === "assistant") html += `<div class="turn char"><div class="name">${s.charName}</div><div class="bubble">${content}</div></div>`;
+                                                else html += `<div class="turn sys"><i>[系统] ${content}</i></div>`;
                                             });
                                             html += `</div></div>`;
                                         });
                                         html += `</body></html>`;
-                                        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-                                        const url = URL.createObjectURL(blob);
+                                        
+                                        const filename = "特调对局导出.html";
+                                        const file = new File([html], filename, { type: "text/html;charset=utf-8" });
+                                        
+                                        // 解决苹果设备/PWA中无法直接下载的问题：优先使用系统原生共享面板
+                                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                            try {
+                                                await navigator.share({ title: '特调导出', files: [file] });
+                                                return;
+                                            } catch (e) {
+                                                console.log("用户取消分享或分享失败", e);
+                                            }
+                                        }
+                                        
+                                        // 降级方案：标准的 DOM 挂载下载
+                                        const url = URL.createObjectURL(file);
                                         const a = document.createElement("a");
+                                        a.style.display = "none";
                                         a.href = url;
-                                        a.download = `特调对局导出.html`;
+                                        a.download = filename;
+                                        document.body.appendChild(a);
                                         a.click();
-                                        URL.revokeObjectURL(url);
+                                        setTimeout(() => {
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(url);
+                                        }, 200);
                                     }}
                                 >
                                     <Download size={14} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} />
