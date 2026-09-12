@@ -795,7 +795,40 @@ export function MixologyApp({ onClose }: { onClose: () => void }) {
 
                 {tab === "games" ? (
                     <>
-                        <div className="mix-section-title" style={{ marginTop: 14 }}>酒局<small>{sessions.length ? `${sessions.length} 场` : ""}</small></div>
+                        <div className="mix-section-title" style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>酒局<small>{sessions.length ? `${sessions.length} 场` : ""}</small></span>
+                            {sessions.length > 0 ? (
+                                <button
+                                    type="button"
+                                    className="mix-pill-btn"
+                                    style={{ fontSize: 13, padding: "4px 10px", height: "auto", background: "#3b82f6", color: "#fff" }}
+                                    onClick={() => {
+                                        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>特调秘录 - 对局导出</title><style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:20px;background:#111;color:#eee;line-height:1.6;} .session{border:1px solid #333;margin-bottom:30px;padding:20px;border-radius:12px;background:#1a1a1a;} h2{margin-top:0;border-bottom:1px solid #333;padding-bottom:10px;} .turn{margin-bottom:12px;display:flex;flex-direction:column;} .user{align-items:flex-end;} .char{align-items:flex-start;} .bubble{padding:10px 14px;border-radius:12px;max-width:80%;white-space:pre-wrap;} .user .bubble{background:#2563eb;color:#fff;border-bottom-right-radius:4px;} .char .bubble{background:#374151;color:#eee;border-bottom-left-radius:4px;} .sys{color:#888;font-size:0.9em;text-align:center;margin:10px 0;} .name{font-size:0.85em;color:#aaa;margin-bottom:4px;}</style></head><body>`;
+                                        html += `<h1>特调对局导出 (${sessions.length}场)</h1>`;
+                                        sessions.forEach(s => {
+                                            html += `<div class="session"><h2>${s.charName} · ${s.recipe.name} <span style="font-size:0.6em;color:#888;font-weight:normal">${new Date(s.updatedAt).toLocaleString()}</span></h2><div class="chat">`;
+                                            s.turns.forEach(t => {
+                                                if(t.role === "user") html += `<div class="turn user"><div class="name">我</div><div class="bubble">${t.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div></div>`;
+                                                else if(t.role === "assistant") html += `<div class="turn char"><div class="name">${s.charName}</div><div class="bubble">${t.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div></div>`;
+                                                else html += `<div class="turn sys"><i>[系统] ${t.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</i></div>`;
+                                            });
+                                            html += `</div></div>`;
+                                        });
+                                        html += `</body></html>`;
+                                        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement("a");
+                                        a.href = url;
+                                        a.download = `特调对局导出.html`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    }}
+                                >
+                                    <Download size={14} style={{ marginRight: 4, display: "inline-block", verticalAlign: "middle" }} />
+                                    <span style={{ verticalAlign: "middle" }}>导出全记录</span>
+                                </button>
+                            ) : null}
+                        </div>
                         {sessions.length === 0 ? (
                             <div className="mix-empty">
                                 <Martini size={32} strokeWidth={1.4} />
