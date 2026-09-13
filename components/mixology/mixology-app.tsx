@@ -808,7 +808,7 @@ export function MixologyApp({ onClose }: { onClose: () => void }) {
                                         sessions.forEach(s => {
                                             html += `<div class="session"><h2>${s.charName} · ${s.recipe?.name || '特调'} <span style="font-size:0.6em;color:#888;font-weight:normal">${new Date(s.updatedAt).toLocaleString()}</span></h2><div class="chat">`;
                                             (s.turns || []).forEach(t => {
-                                                const content = (t.content || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                                                const content = (t.text || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                                                 if(t.role === "user") html += `<div class="turn user"><div class="name">我</div><div class="bubble">${content}</div></div>`;
                                                 else if(t.role === "assistant") html += `<div class="turn char"><div class="name">${s.charName}</div><div class="bubble">${content}</div></div>`;
                                                 else html += `<div class="turn sys"><i>[系统] ${content}</i></div>`;
